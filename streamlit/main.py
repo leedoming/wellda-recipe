@@ -10,10 +10,10 @@ from PIL import Image
 from io import BytesIO
 
 # CSV 파일 열기
-blog_df = pd.read_csv('./blog_.csv')
+blog_df = pd.read_csv('../data/blog_.csv')
 
 # JSON 파일 열기
-with open('../youtube/output_0411.json', 'r', encoding='utf-8') as file:
+with open('../data/output_0411.json', 'r', encoding='utf-8') as file:
     youtube_results = json.load(file)
 
 # 블로그 데이터와 유튜브 데이터를 통합
