@@ -6,8 +6,16 @@ from recipe_create import diet_recipe, effect_create, extract_text
 from search import recipe_engine
 from urllib.parse import quote
 import os
+import re
 from PIL import Image
 from io import BytesIO
+
+# JSON 문자열 정리 함수
+def clean_json_string(json_string):
+    # 제어 문자를 제거
+    json_string = re.sub(r'[\x00-\x1F\x7F]', '', json_string)
+    return json_string
+
 
 # CSV 파일 열기
 blog_df = pd.read_csv('../data/blog_.csv')
@@ -46,7 +54,7 @@ def display_recipes(results, tab_type):
     if search_query:
         results = [result for result in results if search_query.lower() in result["title"].lower()]
     
-    if tab_type != "Common":
+    if tab_type != "Total":
         results = [result for result in results if result['type'] == tab_type.lower()]
     
     if 'index' not in st.session_state:
@@ -108,7 +116,7 @@ def display_recipes(results, tab_type):
                 if result["type"] == "youtube":
                     st.write(result["description"][:150] + '...')  # Display first 150 characters
                     st.markdown(f'조회수 {result["view"]}, 채널명 {result["channel_title"]}')
-                    if col2.button("선택", key=f"select_{tab_type}_{i}"):
+                    if col2.button("✅선택", key=f"select_{tab_type}_{i}"):
                         st.session_state.selected_recipe = result
                         video_id = result['link'].split('/')[-1].replace('-', '_').replace('.', '_')  # link에서 파일 이름 추출
                         script = extract_text(video_id)
@@ -125,7 +133,7 @@ def display_recipes(results, tab_type):
                     st.write(result["description"].split('\n')[0])
                     hashtags = [tag for tag in result["description"].split() if tag.startswith('#')]
                     st.markdown(" ".join(hashtags))
-                    if col2.button("선택", key=f"select_{tab_type}_{i}"):
+                    if col2.button("✅선택", key=f"select_{tab_type}_{i}"):
                         st.session_state.selected_recipe = result
                         content = {
                             "title": result["title"],
@@ -137,18 +145,26 @@ def display_recipes(results, tab_type):
 
     if st.session_state.selected_recipe:
         selected_output = st.session_state.selected_output
-
-        output_json = json.loads(selected_output)
+        clean_selected_output = clean_json_string(selected_output)
+        try:
+            # JSON 파싱
+            output_json = json.loads(clean_selected_output)
+            print(output_json)
+        except json.JSONDecodeError as e:
+            print(f"JSONDecodeError: {e}")
 
         if output_json:
             # Display the title
+            st.write("### 🍱요리명")
             st.write(output_json.get('title', 'Title not available'))
             
+            st.write("### 🥬재료")
             # Display the ingredients
-            st.write(output_json.get('ingredients', 'Ingredients not available'))
+            st.write('✅' + output_json.get('ingredients', 'Ingredients not available'))
             
+            st.write("### 👨🏻‍🍳조리법")
             # Display the steps
-            st.write(output_json.get('steps', 'Steps not available'))
+            st.write('✅' + output_json.get('steps', 'Steps not available'))
 
 def additional():
     ingredients = st.chat_input("재료를 입력하면 효능을 생성해드려요!")
@@ -172,9 +188,9 @@ st.sidebar.markdown("""
     * 작성된 레시피를 기반으로 레시피 일러스트를 생성합니다.
 """)
 if page == "SNS Trends":
-    tab = st.tabs(["Common", "YouTube", "Blog"])
+    tab = st.tabs(["Total", "YouTube", "Blog"])
     with tab[0]:
-        display_recipes(results, "Common")
+        display_recipes(results, "Total")
     with tab[1]:
         display_recipes(results, "YouTube")
     with tab[2]:
@@ -182,6 +198,7 @@ if page == "SNS Trends":
     additional()
 elif page == "Recipe Search Engine":
     recipe_engine()
+    additional()
 
 # Cleanup downloaded images after rendering
 for i in range(len(results)):
