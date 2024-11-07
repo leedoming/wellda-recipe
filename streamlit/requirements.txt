@@ -5,4 +5,4 @@ urllib
 PILLOW
 openai
 youtube_transcript_api
-elasticsearch
+couchbase
